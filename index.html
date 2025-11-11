@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Equipos Maratón de Programación</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    // --- 🔐 Contraseña del Dashboard ---
+    const DASHBOARD_PASSWORD = "maraton2025";
+
+    // --- Firebase Config ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyBon9MXDAlGb1IPVlvbhTYzMa4QUVl9ftQ",
+      authDomain: "lgr0511.firebaseapp.com",
+      projectId: "lgr0511",
+      storageBucket: "lgr0511.appspot.com",
+      messagingSenderId: "53680458999",
+      appId: "1:53680458999:web:57634c03da58af04f017f2",
+      measurementId: "G-2Y35K7LCM8"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const form = document.getElementById("equipoForm");
+      const dashboard = document.getElementById("dashboard");
+      const btnDashboard = document.getElementById("btnDashboard");
+      const checklist = document.getElementById("checkConfirm");
+
+      // --- Mostrar Dashboard ---
+      btnDashboard.addEventListener("click", () => {
+        const pass = prompt("Ingrese la contraseña del administrador:");
+        if (pass === DASHBOARD_PASSWORD) {
+          dashboard.classList.remove("hidden");
+          dashboard.classList.add("animate-fadeIn");
+          btnDashboard.classList.add("hidden");
+        } else {
+          alert("❌ Contraseña incorrecta");
+        }
+      });
+
+      // --- Registrar equipo ---
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const institucion = form.institucion.value.trim();
+        const categoria = form.categoria.value;
+        const participante1 = form.participante1.value.trim();
+        const edad1 = parseInt(form.edad1.value);
+        const participante2 = form.participante2.value.trim();
+        const edad2 = parseInt(form.edad2.value);
+        const participante3 = form.participante3.value.trim();
+        const edad3 = form.edad3.value ? parseInt(form.edad3.value) : null;
+
+        if (!institucion || !categoria || !participante1 || !participante2) {
+          alert("⚠️ Por favor completa los campos obligatorios.");
+          return;
+        }
+
+        if (!checklist.checked) {
+          alert("⚠️ Debes confirmar que los datos son correctos.");
+          return;
+        }
+
+        const participantes = [
+          { nombre: participante1, edad: edad1 },
+          { nombre: participante2, edad: edad2 }
+        ];
+
+        if (participante3) {
+          participantes.push({ nombre: participante3, edad: edad3 });
+        }
+
+        await addDoc(collection(db, "equipos_pre"), {
+          institucion,
+          categoria,
+          participantes,
+          fecha: new Date()
+        });
+
+        alert("✅ Equipo registrado con éxito. ¡Nos vemos en la maratón!");
+        form.reset();
+      });
+
+      // --- Dashboard en tiempo real ---
+      const equiposRef = collection(db, "equipos_pre");
+      onSnapshot(equiposRef, (snapshot) => {
+        let totalPersonas = 0, totalJunior = 0, totalSenior = 0;
+        let equiposJunior = 0, equiposSenior = 0;
+
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const num = data.participantes?.length || 0;
+
+          totalPersonas += num;
+          if (data.categoria === "junior") {
+            totalJunior += num;
+            equiposJunior++;
+          } else if (data.categoria === "senior") {
+            totalSenior += num;
+            equiposSenior++;
+          }
+        });
+
+        document.getElementById("totalPersonas").innerText = totalPersonas;
+        document.getElementById("totalJunior").innerText = totalJunior;
+        document.getElementById("totalSenior").innerText = totalSenior;
+        document.getElementById("equiposJunior").innerText = equiposJunior;
+        document.getElementById("equiposSenior").innerText = equiposSenior;
+      });
+    });
+  </script>
+
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-fadeIn {
+      animation: fadeIn 0.8s ease-out;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex flex-col items-center py-10 px-4">
+
+  <!-- Contenedor principal -->
+  <div class="w-full max-w-4xl bg-white shadow-xl rounded-3xl p-8 border border-blue-100">
+    <img src="barradelogos_aliados.png" alt="Aliados" class="mx-auto mb-4 h-12 object-contain">
+
+    <h1 class="text-4xl font-bold text-center text-blue-700 mb-4">🏆 Maratón de Programación</h1>
+    <p class="text-center text-gray-600 mb-3">Registra tu equipo y forma parte del gran evento.</p>
+    <p class="text-center text-gray-500 mb-8 italic">📍 13 de noviembre - Auditorio IEFEM</p>
+
+    <form id="equipoForm" class="space-y-6">
+      <!-- Institución -->
+      <div>
+        <label class="block font-semibold text-gray-800 mb-1">Institución Educativa:</label>
+        <select id="institucion" name="institucion" required
+          class="w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <option value="">Seleccione...</option>
+          <optgroup label="Instituciones Educativas">
+            <option value="IEFEM">IEFEM</option>
+            <option value="Agropecuaria de Tagachi">Agropecuaria de Tagachi</option>
+            <option value="Carrasquilla">Carrasquilla</option>
+            <option value="Comfachico">Comfachico</option>
+            <option value="Otro">Otro</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <!-- Categoría -->
+      <div>
+        <label class="block font-semibold text-gray-800 mb-1">Categoría:</label>
+        <select name="categoria" required
+          class="w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-green-500">
+          <option value="">Seleccione...</option>
+          <option value="junior">Junior</option>
+          <option value="senior">Senior</option>
+        </select>
+      </div>
+
+      <!-- Participantes -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-blue-50 rounded-2xl p-4">
+          <h2 class="text-blue-700 font-semibold mb-2">Participante 1 *</h2>
+          <input type="text" name="participante1" placeholder="Nombre completo" class="w-full border rounded-xl p-2 mb-2 focus:ring-2 focus:ring-blue-400" required>
+          <input type="number" name="edad1" placeholder="Edad" class="w-full border rounded-xl p-2 focus:ring-2 focus:ring-blue-400" required>
+        </div>
+
+        <div class="bg-green-50 rounded-2xl p-4">
+          <h2 class="text-green-700 font-semibold mb-2">Participante 2 *</h2>
+          <input type="text" name="participante2" placeholder="Nombre completo" class="w-full border rounded-xl p-2 mb-2 focus:ring-2 focus:ring-green-400" required>
+          <input type="number" name="edad2" placeholder="Edad" class="w-full border rounded-xl p-2 focus:ring-2 focus:ring-green-400" required>
+        </div>
+
+        <div class="bg-yellow-50 rounded-2xl p-4">
+          <h2 class="text-yellow-700 font-semibold mb-2">Participante 3 (opcional)</h2>
+          <input type="text" name="participante3" placeholder="Nombre completo" class="w-full border rounded-xl p-2 mb-2 focus:ring-2 focus:ring-yellow-400">
+          <input type="number" name="edad3" placeholder="Edad" class="w-full border rounded-xl p-2 focus:ring-2 focus:ring-yellow-400">
+        </div>
+      </div>
+
+      <!-- Mensaje motivacional -->
+      <div class="text-center text-blue-700 font-semibold mt-6">
+        🚀 ¡Confirma tu equipo y demuestra tu talento en la maratón de programación 2025!
+      </div>
+
+      <!-- Checklist -->
+      <div class="flex items-center justify-center gap-2 mt-4">
+        <input type="checkbox" id="checkConfirm" class="w-5 h-5">
+        <label for="checkConfirm" class="text-gray-700 text-sm">Confirmo la participanción de mi equipo en la maratón.</label>
+      </div>
+
+      <button type="submit"
+        class="w-full mt-6 bg-gradient-to-r from-blue-600 to-green-600 text-white py-3 rounded-xl font-semibold text-lg shadow-md hover:opacity-90 transition">
+        Registrar Equipo
+      </button>
+    </form>
+  </div>
+
+  <!-- Botón Dashboard -->
+  <button id="btnDashboard" class="mt-10 text-sm text-gray-500 hover:text-gray-700 underline">
+    Acceso administrador
+  </button>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="hidden w-full max-w-4xl mt-8 bg-white rounded-3xl shadow-xl p-6 border border-green-100">
+    <h2 class="text-3xl font-bold text-center text-green-700 mb-6">📊 Dashboard de Equipos</h2>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-6 text-center">
+      <div class="bg-blue-100 p-4 rounded-xl">
+        <h3 class="font-semibold text-blue-800">Total Personas</h3>
+        <p id="totalPersonas" class="text-3xl font-bold">0</p>
+      </div>
+      <div class="bg-green-100 p-4 rounded-xl">
+        <h3 class="font-semibold text-green-800">Personas Junior</h3>
+        <p id="totalJunior" class="text-3xl font-bold">0</p>
+      </div>
+      <div class="bg-yellow-100 p-4 rounded-xl">
+        <h3 class="font-semibold text-yellow-800">Personas Senior</h3>
+        <p id="totalSenior" class="text-3xl font-bold">0</p>
+      </div>
+      <div class="bg-purple-100 p-4 rounded-xl">
+        <h3 class="font-semibold text-purple-800">Equipos Junior</h3>
+        <p id="equiposJunior" class="text-3xl font-bold">0</p>
+      </div>
+      <div class="bg-pink-100 p-4 rounded-xl">
+        <h3 class="font-semibold text-pink-800">Equipos Senior</h3>
+        <p id="equiposSenior" class="text-3xl font-bold">0</p>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
